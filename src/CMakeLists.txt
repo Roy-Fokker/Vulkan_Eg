@@ -46,4 +46,5 @@ target_precompile_headers(vulkan-eg
 # sources to be used
 target_sources(vulkan-eg
 	PRIVATE
-		main.cpp)
+		main.cpp
+		window.cpp)

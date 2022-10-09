@@ -1,6 +1,6 @@
 # Vulkan Example
 
-Using C++20
+Using C++20 on Windows
 
 ---
 ## Dependencies

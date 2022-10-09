@@ -1,5 +1,9 @@
 # find all libraries defined in vcpkg
 find_package(Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
+
+# find paths for header only libraries
+#find_path(VULKAN_HPP_INCLUDE_DIRS "vulkan/vulkan.hpp")
 
 # update executable name
 add_executable(vulkan-eg)
@@ -22,10 +26,17 @@ target_link_options(vulkan-eg
 	PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/entry:mainCRTStartup>)
 
+# additional include directories
+target_include_directories(vulkan-eg
+	PRIVATE
+		# ${VULKAN_HPP_INCLUDE_DIRS}
+		)
+
 # libraries that are used by executable
 target_link_libraries(vulkan-eg
 	PRIVATE
-		Vulkan::Vulkan)
+		Vulkan::Vulkan
+		glm::glm)
 
 # Use Precompiled headers for std/os stuff
 target_precompile_headers(vulkan-eg

@@ -1,11 +1,11 @@
 #include "window.h"
+#include "renderer.h"
 
 auto main() -> int
 {
-	auto extension_count = vk::enumerateInstanceExtensionProperties();
-	std::cout << std::format("Extensions supports: {}\n", extension_count.size());
-
 	using namespace vulkan_eg;
+
+	// Create Window
 	auto wnd = window(L"Vulkan Example",
 	                  {800, 600});
 	
@@ -19,6 +19,9 @@ auto main() -> int
 		}
 		return true;
 	});
+
+	// Create Renderer
+	auto rndr = renderer("Vulkan_Eg");
 
 	wnd.show();
 	while (wnd.handle() and (not is_close))

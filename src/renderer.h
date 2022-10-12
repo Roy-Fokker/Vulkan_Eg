@@ -5,7 +5,7 @@ namespace vulkan_eg
 	class renderer
 	{
 	public:
-		renderer(std::string_view name);
+		renderer(HWND windowHandle);
 		~renderer();
 
 	private:

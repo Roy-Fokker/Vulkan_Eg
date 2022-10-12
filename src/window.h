@@ -1,10 +1,5 @@
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable : 5105)
-#include <Windows.h>
-#pragma warning(pop)
-
 namespace vulkan_eg
 {
 	class window

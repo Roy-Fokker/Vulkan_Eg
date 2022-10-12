@@ -21,7 +21,7 @@ auto main() -> int
 	});
 
 	// Create Renderer
-	auto rndr = renderer("Vulkan_Eg");
+	auto rndr = renderer(wnd.handle());
 
 	wnd.show();
 	while (wnd.handle() and (not is_close))

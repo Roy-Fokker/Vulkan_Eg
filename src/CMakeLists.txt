@@ -19,7 +19,8 @@ target_compile_definitions(vulkan-eg
 		UNICODE _UNICODE 
 		_SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING 
 		NOMINMAX 
-		WIN32_LEAN_AND_MEAN)
+		WIN32_LEAN_AND_MEAN
+		VK_USE_PLATFORM_WIN32_KHR)
 
 # executable specific target options
 target_link_options(vulkan-eg

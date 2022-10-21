@@ -6,15 +6,18 @@ using namespace std::string_literals;
 namespace 
 {
 	constexpr auto wanted_layers = std::array{
+#ifdef _DEBUG
 		"VK_LAYER_KHRONOS_validation",
-		"VK_LAYER_LUNARG_standard_validation",
+#endif
 	};
 
 	constexpr auto wanted_extensions = std::array{
 		VK_KHR_SURFACE_EXTENSION_NAME,
+		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#ifdef _DEBUG
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#endif
 	};
 
 	auto get_window_name(HWND handle) -> std::string
@@ -70,14 +73,66 @@ namespace
 	}
 }
 
+#ifdef _DEBUG
+static auto debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                           VkDebugUtilsMessageTypeFlagsEXT messageType,
+                           const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                           void *pUserData)
+-> vk::Bool32
+{
+	if (messageSeverity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+	{
+		std::cerr << std::format("Validation Layer: {}\n", pCallbackData->pMessage);
+	}
+	return VK_FALSE;
+}
+
+static auto vkCreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+                                           const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+-> VkResult
+{
+	auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	if (func != nullptr)
+	{
+		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+	}
+	else
+	{
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
+static void vkDestroyDebugUtilsMessengerEXT(VkInstance instance, 
+                                            VkDebugUtilsMessengerEXT debugMessenger, 
+                                            const VkAllocationCallbacks* pAllocator)
+{
+	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func != nullptr)
+	{
+		func(instance, debugMessenger, pAllocator);
+	}
+}
+
+#endif
+
 renderer::renderer(HWND windowHandle)
 {
+
 	auto name = get_window_name(windowHandle);
 
 	create_vulkan_instance(name);
+#ifdef _DEBUG
+	setup_debug_callback();
+#endif
 }
 
-renderer::~renderer() = default;
+renderer::~renderer()
+{
+#ifdef _DEBUG
+	instance.destroyDebugUtilsMessengerEXT(debug_messenger);
+#endif
+	instance.destroy();
+}
 
 void renderer::create_vulkan_instance(std::string_view name)
 {
@@ -101,7 +156,7 @@ void renderer::create_vulkan_instance(std::string_view name)
 			vk::InstanceCreateFlags{}, 
 			&appInfo,
 			layers, 
-			extensions
+			extensions 
 		);
 
 		instance = vk::createInstance(createInfo);
@@ -118,3 +173,14 @@ void renderer::create_vulkan_instance(std::string_view name)
 	}
 }
 
+void renderer::setup_debug_callback()
+{
+	auto severityFlags = vk::DebugUtilsMessageSeverityFlagsEXT(vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+	                                                           vk::DebugUtilsMessageSeverityFlagBitsEXT::eError );
+	auto messageTypeFlags = vk::DebugUtilsMessageTypeFlagsEXT(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | 
+	                                                          vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+	                                                          vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation );
+	auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT( {}, severityFlags, messageTypeFlags, &debug_callback );
+
+	debug_messenger = instance.createDebugUtilsMessengerEXT(createInfo);
+}

@@ -9,3 +9,7 @@ Using C++20 on Windows
 	- GLM
 - cmake
 - LunarG's Vulkan SDK
+
+---
+## References
+- https://vulkan-tutorial.com/

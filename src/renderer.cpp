@@ -124,6 +124,7 @@ renderer::renderer(HWND windowHandle)
 #ifdef _DEBUG
 	setup_debug_callback();
 #endif
+	pick_physical_device();
 }
 
 renderer::~renderer()
@@ -183,4 +184,25 @@ void renderer::setup_debug_callback()
 	auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT( {}, severityFlags, messageTypeFlags, &debug_callback );
 
 	debug_messenger = instance.createDebugUtilsMessengerEXT(createInfo);
+}
+
+void renderer::pick_physical_device()
+{
+	auto devices = instance.enumeratePhysicalDevices();
+
+	if (devices.size() == 0)
+	{
+		throw std::runtime_error("failed to find GPU with Vulkan support");
+	}
+
+	auto suitable_devices = devices
+		| std::views::filter(
+			[](vk::PhysicalDevice& device) -> bool
+			{
+				return (device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+					and (device.getFeatures().geometryShader);
+			})
+		| std::views::take(1);;
+
+	physical_device = suitable_devices.front();
 }

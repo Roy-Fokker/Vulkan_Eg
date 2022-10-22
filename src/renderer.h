@@ -11,9 +11,11 @@ namespace vulkan_eg
 	private:
 		void create_vulkan_instance(std::string_view name);
 		void setup_debug_callback();
+		void pick_physical_device();
 
 	private:
 		vk::Instance instance;
 		vk::DebugUtilsMessengerEXT debug_messenger;
+		vk::PhysicalDevice physical_device;
 	};
 }

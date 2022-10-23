@@ -162,10 +162,13 @@ renderer::renderer(HWND windowHandle)
 	setup_debug_callback();
 #endif
 	pick_physical_device();
+	create_logical_device();
 }
 
 renderer::~renderer()
 {
+	device.destroy();
+
 #ifdef _DEBUG
 	instance.destroyDebugUtilsMessengerEXT(debug_messenger);
 #endif
@@ -236,23 +239,18 @@ void renderer::pick_physical_device()
 	}
 }
 
-	auto suitable_devices = devices
-		| std::views::filter(
-			[](vk::PhysicalDevice& device) -> bool
-			{
-				/*
-				return (device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
-					and (device.getFeatures().geometryShader);
-				*/
-				auto queue_families = device.getQueueFamilyProperties();
-				auto family = queue_families | std::views::filter([](vk::QueueFamilyProperties &p) -> bool
-				{
-					return static_cast<bool>(p.queueFlags & vk::QueueFlagBits::eGraphics);
-				});
+void renderer::create_logical_device()
+{
+	auto queue_family = find_queue_family(physical_device).value();
 
-				return not family.empty();
-			})
-		| std::views::take(1);;
+	auto queue_priority = 1.0f;
+	auto queue_createInfo = vk::DeviceQueueCreateInfo({}, static_cast<uint32_t>(queue_family.first), 1, &queue_priority);
 
-	physical_device = suitable_devices.front();
+	auto queue_array = std::vector{queue_createInfo};
+	auto layers = find_best_layers(wanted_layers, vk::enumerateInstanceLayerProperties());
+	auto extensions = find_best_extensions(wanted_extensions, vk::enumerateInstanceExtensionProperties());
+	auto device_features = vk::PhysicalDeviceFeatures{};
+
+	auto device_createInfo = vk::DeviceCreateInfo({}, queue_array, layers, /*extensions*/{});
+	device = physical_device.createDevice(device_createInfo);
 }

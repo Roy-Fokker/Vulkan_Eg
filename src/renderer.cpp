@@ -199,8 +199,17 @@ void renderer::pick_physical_device()
 		| std::views::filter(
 			[](vk::PhysicalDevice& device) -> bool
 			{
+				/*
 				return (device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
 					and (device.getFeatures().geometryShader);
+				*/
+				auto queue_families = device.getQueueFamilyProperties();
+				auto family = queue_families | std::views::filter([](vk::QueueFamilyProperties &p) -> bool
+				{
+					return static_cast<bool>(p.queueFlags & vk::QueueFlagBits::eGraphics);
+				});
+
+				return not family.empty();
 			})
 		| std::views::take(1);;
 

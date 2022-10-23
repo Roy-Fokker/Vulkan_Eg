@@ -8,6 +8,8 @@
 #include <memory>
 #include <functional>
 #include <ranges>
+#include <concepts>
+#include <optional>
 
 #pragma warning(push)
 #pragma warning(disable : 5105)

@@ -9,7 +9,7 @@
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
-			"console": "newExternalWindow"
+			"console": "externalTerminal"
 		}
 	],
 	"version": "2.0.0"

@@ -10,6 +10,8 @@
 #include <ranges>
 #include <concepts>
 #include <optional>
+#include <tuple>
+#include <utility>
 
 #pragma warning(push)
 #pragma warning(disable : 5105)

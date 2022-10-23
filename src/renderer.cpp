@@ -71,6 +71,43 @@ namespace
 		}
 		return out;
 	}
+
+	auto find_queue_family(vk::PhysicalDevice &device) -> std::optional<std::pair<uint32_t, vk::QueueFamilyProperties>>
+	{
+		auto queue_families = device.getQueueFamilyProperties();
+		auto queue_family_iter = std::ranges::find_if(queue_families, [](vk::QueueFamilyProperties &qf) -> bool{
+			return static_cast<bool>(qf.queueFlags & vk::QueueFlagBits::eGraphics);
+		});
+
+		if (queue_family_iter == queue_families.end())
+		{
+			return std::nullopt;
+		}
+
+		auto queue_index = std::distance(queue_families.begin(), queue_family_iter);
+
+		return std::pair{
+			static_cast<uint32_t>(queue_index),
+			*queue_family_iter
+		};
+	}
+
+	auto find_suitable_device(vk::Instance &instance) -> std::optional<vk::PhysicalDevice>
+	{
+		auto devices = instance.enumeratePhysicalDevices();
+
+		auto device_iter = std::ranges::find_if(devices, [](vk::PhysicalDevice &device)
+		{
+			return find_queue_family(device).has_value();
+		});
+
+		if (device_iter == devices.end())
+		{
+			return std::nullopt;
+		}
+
+		return *device_iter;
+	}
 }
 
 #ifdef _DEBUG
@@ -188,12 +225,16 @@ void renderer::setup_debug_callback()
 
 void renderer::pick_physical_device()
 {
-	auto devices = instance.enumeratePhysicalDevices();
-
-	if (devices.size() == 0)
+	if (auto suitable_device = find_suitable_device(instance);
+	    suitable_device.has_value())
 	{
-		throw std::runtime_error("failed to find GPU with Vulkan support");
+		physical_device = suitable_device.value();
 	}
+	else
+	{
+		throw std::runtime_error("No suitable device found.");
+	}
+}
 
 	auto suitable_devices = devices
 		| std::views::filter(

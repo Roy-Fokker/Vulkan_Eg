@@ -73,33 +73,58 @@ namespace
 		return out;
 	}
 
-	auto find_queue_family(vk::PhysicalDevice &device) -> std::optional<std::pair<uint32_t, vk::QueueFamilyProperties>>
+	struct queue_family
 	{
+		std::optional<uint32_t> graphics_family;
+		std::optional<uint32_t> present_family;
+
+		auto is_complete() -> bool
+		{
+			return graphics_family.has_value() 
+			   and present_family.has_value();
+		}
+	};
+
+	auto find_queue_family(vk::PhysicalDevice &device, vk::SurfaceKHR &surface) -> queue_family
+	{
+		auto out = queue_family{};
+
 		auto queue_families = device.getQueueFamilyProperties();
-		auto queue_family_iter = std::ranges::find_if(queue_families, [](vk::QueueFamilyProperties &qf) -> bool{
+		
+		auto queue_family_iter = std::ranges::find_if(queue_families, [&](vk::QueueFamilyProperties &qf) -> bool
+		{
 			return static_cast<bool>(qf.queueFlags & vk::QueueFlagBits::eGraphics);
 		});
 
-		if (queue_family_iter == queue_families.end())
+		if (queue_family_iter != queue_families.end())
 		{
-			return std::nullopt;
+			out.graphics_family = static_cast<uint32_t>(std::distance(queue_families.begin(), queue_family_iter));
 		}
 
-		auto queue_index = std::distance(queue_families.begin(), queue_family_iter);
+		auto queue_idx{0};
+		queue_family_iter = std::ranges::find_if(queue_families, [&](vk::QueueFamilyProperties &qf) -> bool
+		{
+			auto present_support = device.getSurfaceSupportKHR(queue_idx, surface);
+			queue_idx++;
 
-		return std::pair{
-			static_cast<uint32_t>(queue_index),
-			*queue_family_iter
-		};
+			return static_cast<bool>(present_support);
+		});
+
+		if (queue_family_iter != queue_families.end())
+		{
+			out.present_family = static_cast<uint32_t>(std::distance(queue_families.begin(), queue_family_iter));
+		}
+		
+		return out;
 	}
 
-	auto find_suitable_device(vk::Instance &instance) -> std::optional<vk::PhysicalDevice>
+	auto find_suitable_device(vk::Instance &instance, vk::SurfaceKHR &surface) -> std::optional<vk::PhysicalDevice>
 	{
 		auto devices = instance.enumeratePhysicalDevices();
 
-		auto device_iter = std::ranges::find_if(devices, [](vk::PhysicalDevice &device)
+		auto device_iter = std::ranges::find_if(devices, [&](vk::PhysicalDevice &device)
 		{
-			return find_queue_family(device).has_value();
+			return find_queue_family(device, surface).is_complete();
 		});
 
 		if (device_iter == devices.end())
@@ -162,6 +187,7 @@ renderer::renderer(HWND windowHandle)
 #ifdef _DEBUG
 	setup_debug_callback();
 #endif
+	create_surface(windowHandle);
 	pick_physical_device();
 	create_logical_device();
 }
@@ -170,9 +196,12 @@ renderer::~renderer()
 {
 	device.destroy();
 
+	instance.destroySurfaceKHR(surface);
+
 #ifdef _DEBUG
 	instance.destroyDebugUtilsMessengerEXT(debug_messenger);
 #endif
+
 	instance.destroy();
 }
 
@@ -227,9 +256,15 @@ void renderer::setup_debug_callback()
 	debug_messenger = instance.createDebugUtilsMessengerEXT(createInfo);
 }
 
+void renderer::create_surface(HWND windowHandle)
+{
+	auto createInfo = vk::Win32SurfaceCreateInfoKHR({}, GetModuleHandle(nullptr), windowHandle);
+	surface = instance.createWin32SurfaceKHR(createInfo);
+}
+
 void renderer::pick_physical_device()
 {
-	if (auto suitable_device = find_suitable_device(instance);
+	if (auto suitable_device = find_suitable_device(instance, surface);
 	    suitable_device.has_value())
 	{
 		physical_device = suitable_device.value();
@@ -242,16 +277,22 @@ void renderer::pick_physical_device()
 
 void renderer::create_logical_device()
 {
-	auto queue_family = find_queue_family(physical_device).value();
+	auto qf = find_queue_family(physical_device, surface);
 
 	auto queue_priority = 1.0f;
-	auto queue_createInfo = vk::DeviceQueueCreateInfo({}, static_cast<uint32_t>(queue_family.first), 1, &queue_priority);
-
-	auto queue_array = std::vector{queue_createInfo};
+	auto queue_array = std::vector{
+		vk::DeviceQueueCreateInfo({}, static_cast<uint32_t>(qf.graphics_family.value()), 1, &queue_priority),
+		vk::DeviceQueueCreateInfo({}, static_cast<uint32_t>(qf.present_family.value()), 1, &queue_priority),
+	};
 	auto layers = find_best_layers(wanted_layers, vk::enumerateInstanceLayerProperties());
 	auto extensions = find_best_extensions(wanted_extensions, vk::enumerateInstanceExtensionProperties());
 	auto device_features = vk::PhysicalDeviceFeatures{};
 
 	auto device_createInfo = vk::DeviceCreateInfo({}, queue_array, layers, /*extensions*/{});
 	device = physical_device.createDevice(device_createInfo);
+
+	graphics_queue = device.getQueue(qf.graphics_family.value(), 0);
+	present_queue = device.getQueue(qf.present_family.value(), 0);
+
 }
+

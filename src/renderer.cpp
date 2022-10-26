@@ -34,9 +34,10 @@ namespace
 	template <size_t S>
 	auto find_best_extensions(const std::array<const char *, S> &wanted, 
 	                          const std::vector<vk::ExtensionProperties> &installed)
-	  -> std::vector<const char *>
+		-> std::vector<const char *>
 	{
 		auto out = std::vector<const char *>{};
+
 		for (auto &&w : wanted)
 		{
 			for (auto &&i : installed)
@@ -55,7 +56,7 @@ namespace
 	template <size_t S>
 	auto find_best_layers(const std::array<const char *, S> &wanted, 
 	                      const std::vector<vk::LayerProperties> &installed)
-	  -> std::vector<const char *>
+		-> std::vector<const char *>
 	{
 		auto out = std::vector<const char *>{};
 		for (auto &&w : wanted)

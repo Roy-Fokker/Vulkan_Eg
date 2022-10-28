@@ -7,6 +7,7 @@
 #include <string_view>
 #include <memory>
 #include <functional>
+#include <algorithm>
 #include <ranges>
 #include <concepts>
 #include <optional>

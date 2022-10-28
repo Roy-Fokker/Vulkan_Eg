@@ -26,10 +26,10 @@ namespace
 
 	auto get_window_name(HWND handle) -> std::string
 	{
-		auto len = GetWindowTextLengthA(handle) + 1;
+		auto len = static_cast<size_t>(GetWindowTextLengthA(handle)) + 1;
 		auto name{""s};
 		name.resize(len);
-		auto result = GetWindowTextA(handle, &name[0], len);
+		auto result = GetWindowTextA(handle, &name[0], static_cast<int>(len));
 		name.resize(len - 1);
 
 		return name;
@@ -283,7 +283,8 @@ void renderer::create_vulkan_instance(std::string_view name)
 {
 	try
 	{	
-		auto appInfo = vk::ApplicationInfo{} = {
+		auto appInfo = vk::ApplicationInfo
+		{
 			.pApplicationName = name.data(),
 			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 			.pEngineName = name.data(),
@@ -297,12 +298,14 @@ void renderer::create_vulkan_instance(std::string_view name)
 		auto installed_layers = vk::enumerateInstanceLayerProperties();
 		auto layers = find_best_layers(wanted_instance_layers, installed_layers);
 
-		auto createInfo = vk::InstanceCreateInfo(
-			vk::InstanceCreateFlags{}, 
-			&appInfo,
-			layers, 
-			extensions 
-		);
+		auto createInfo = vk::InstanceCreateInfo
+		{
+			.pApplicationInfo = &appInfo,
+			.enabledLayerCount = static_cast<uint32_t>(layers.size()),
+			.ppEnabledLayerNames = layers.data(),
+			.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+			.ppEnabledExtensionNames = extensions.data()
+		};
 
 		instance = vk::createInstance(createInfo);
 	}
@@ -325,14 +328,24 @@ void renderer::setup_debug_callback()
 	auto messageTypeFlags = vk::DebugUtilsMessageTypeFlagsEXT(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | 
 	                                                          vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
 	                                                          vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation );
-	auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT( {}, severityFlags, messageTypeFlags, &debug_callback );
+	auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT
+	{
+		.messageSeverity = severityFlags, 
+		.messageType = messageTypeFlags, 
+		.pfnUserCallback = &debug_callback
+	};
 
 	debug_messenger = instance.createDebugUtilsMessengerEXT(createInfo);
 }
 
 void renderer::create_surface(HWND windowHandle)
 {
-	auto createInfo = vk::Win32SurfaceCreateInfoKHR({}, GetModuleHandle(nullptr), windowHandle);
+	auto createInfo = vk::Win32SurfaceCreateInfoKHR
+	{
+		.hinstance = GetModuleHandle(nullptr),
+		.hwnd = windowHandle
+	};
+
 	surface = instance.createWin32SurfaceKHR(createInfo);
 }
 
@@ -354,15 +367,34 @@ void renderer::create_logical_device()
 	auto qf = find_queue_family(physical_device, surface);
 
 	auto queue_priority = 1.0f;
-	auto queue_array = std::vector{
-		vk::DeviceQueueCreateInfo({}, static_cast<uint32_t>(qf.graphics_family.value()), 1, &queue_priority),
-		vk::DeviceQueueCreateInfo({}, static_cast<uint32_t>(qf.present_family.value()), 1, &queue_priority),
+	auto queue_array = std::vector
+	{
+		vk::DeviceQueueCreateInfo
+		{
+			.queueFamilyIndex = static_cast<uint32_t>(qf.graphics_family.value()),
+			.queueCount = 1,
+			.pQueuePriorities = &queue_priority
+		},
+		vk::DeviceQueueCreateInfo
+		{
+			.queueFamilyIndex = static_cast<uint32_t>(qf.present_family.value()),
+			.queueCount = 1,
+			.pQueuePriorities = &queue_priority
+		},
 	};
 	auto layers = find_best_layers(wanted_instance_layers, vk::enumerateInstanceLayerProperties());
 	auto extensions = find_best_extensions(wanted_device_extensions, physical_device.enumerateDeviceExtensionProperties());
 	auto device_features = vk::PhysicalDeviceFeatures{};
 
-	auto device_createInfo = vk::DeviceCreateInfo({}, queue_array, layers, extensions);
+	auto device_createInfo = vk::DeviceCreateInfo
+	{
+		.queueCreateInfoCount = static_cast<uint32_t>(queue_array.size()),
+		.pQueueCreateInfos = queue_array.data(),
+		.enabledLayerCount = static_cast<uint32_t>(layers.size()),
+		.ppEnabledLayerNames = layers.data(),
+		.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+		.ppEnabledExtensionNames = extensions.data()
+	};
 	device = physical_device.createDevice(device_createInfo);
 
 	graphics_queue = device.getQueue(qf.graphics_family.value(), 0);
@@ -386,10 +418,23 @@ void renderer::create_swap_chain()
 	         ? std::vector{qf.graphics_family.value(), qf.present_family.value()}
 	         : std::vector<uint32_t>{};
 
-	auto createInfo = vk::SwapchainCreateInfoKHR({}, surface, image_count, sf.format, sf.colorSpace,
-	                                             extent, 1, vk::ImageUsageFlagBits::eColorAttachment,
-	                                             ism, qfl, scs.capabilities.currentTransform,
-	                                             vk::CompositeAlphaFlagBitsKHR::eOpaque, pm, true);
+	auto createInfo = vk::SwapchainCreateInfoKHR
+	{
+		.surface = surface, 
+		.minImageCount = image_count,
+		.imageFormat = sf.format,
+		.imageColorSpace = sf.colorSpace,
+		.imageExtent = extent,
+		.imageArrayLayers = 1,
+		.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+		.imageSharingMode = ism,
+		.queueFamilyIndexCount = static_cast<uint32_t>(qfl.size()),
+		.pQueueFamilyIndices = qfl.data(),
+		.preTransform = scs.capabilities.currentTransform,
+		.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+		.presentMode = pm,
+		.clipped = true
+	};
 
 	swap_chain = device.createSwapchainKHR(createInfo);
 }

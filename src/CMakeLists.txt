@@ -1,6 +1,7 @@
 # find all libraries defined in vcpkg
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(range-v3 CONFIG REQUIRED)
 
 # find paths for header only libraries
 #find_path(VULKAN_HPP_INCLUDE_DIRS "vulkan/vulkan.hpp")
@@ -38,7 +39,8 @@ target_include_directories(vulkan-eg
 target_link_libraries(vulkan-eg
 	PRIVATE
 		Vulkan::Vulkan
-		glm::glm)
+		glm::glm
+		range-v3)
 
 # Use Precompiled headers for std/os stuff
 target_precompile_headers(vulkan-eg

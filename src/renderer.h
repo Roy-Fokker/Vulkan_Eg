@@ -15,6 +15,7 @@ namespace vulkan_eg
 		void pick_physical_device();
 		void create_logical_device();
 		void create_swap_chain();
+		void create_image_views();
 
 	private:
 		vk::Instance instance;
@@ -24,5 +25,9 @@ namespace vulkan_eg
 		vk::Device device;
 		vk::Queue graphics_queue, present_queue;
 		vk::SwapchainKHR swap_chain;
+		std::vector<vk::Image> swap_chain_images;
+		vk::Format swap_chain_format;
+		vk::Extent2D swap_chain_extent;
+		std::vector<vk::ImageView> swap_chain_image_views;
 	};
 }

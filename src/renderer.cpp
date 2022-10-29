@@ -265,10 +265,16 @@ renderer::renderer(HWND windowHandle)
 	pick_physical_device();
 	create_logical_device();
 	create_swap_chain();
+	create_image_views();
 }
 
 renderer::~renderer()
 {
+	for (auto &iv : swap_chain_image_views)
+	{
+		device.destroyImageView(iv);
+	}
+
 	device.destroySwapchainKHR(swap_chain);
 	device.destroy();
 
@@ -437,4 +443,37 @@ void renderer::create_swap_chain()
 	};
 
 	swap_chain = device.createSwapchainKHR(createInfo);
+
+	swap_chain_images = device.getSwapchainImagesKHR(swap_chain);
+	swap_chain_format = sf.format;
+	swap_chain_extent = extent;
+}
+
+void renderer::create_image_views()
+{
+	swap_chain_image_views.resize(swap_chain_images.size());
+	for(auto&& [i, iv] : ranges::views::zip(swap_chain_images, swap_chain_image_views))
+	{
+		auto createInfo = vk::ImageViewCreateInfo
+		{
+			.image = i,
+			.viewType = vk::ImageViewType::e2D,
+			.format = swap_chain_format,
+			.components = {
+				.r = vk::ComponentSwizzle::eIdentity,
+				.g = vk::ComponentSwizzle::eIdentity,
+				.b = vk::ComponentSwizzle::eIdentity,
+				.a = vk::ComponentSwizzle::eIdentity,
+			},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+
+		iv = device.createImageView(createInfo);
+	}
 }

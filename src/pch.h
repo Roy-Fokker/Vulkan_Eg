@@ -3,6 +3,7 @@
 #include <version>
 #include <cstdint>
 #include <iostream>
+#include <fstream>
 #include <format>
 #include <string_view>
 #include <memory>
@@ -13,6 +14,7 @@
 #include <optional>
 #include <tuple>
 #include <utility>
+#include <filesystem>
 
 #pragma warning(push)
 #pragma warning(disable : 5105)

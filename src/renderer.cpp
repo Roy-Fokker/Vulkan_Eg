@@ -208,6 +208,37 @@ namespace
 
 		throw std::runtime_error("Current Extent width exceeds numeric max.");
 	}
+
+	auto read_file(const std::filesystem::path &filename) -> std::vector<uint32_t>
+	{
+		auto file = std::ifstream(filename, std::ios::ate | std::ios::binary);
+
+		if (not file.is_open())
+		{
+			throw std::runtime_error("failed to open file!");
+		}
+
+		auto file_size = file.tellg();
+		auto buffer = std::vector<uint32_t>(file_size);
+		
+		file.seekg(0);
+		file.read(reinterpret_cast<char *>(buffer.data()), file_size);
+
+		file.close();
+
+		return buffer;
+	}
+
+	auto create_shader_module(vk::Device &device, const std::vector<uint32_t> &shader_code) -> vk::ShaderModule
+	{
+		auto createInfo = vk::ShaderModuleCreateInfo
+		{
+			.codeSize = shader_code.size(),
+			.pCode = shader_code.data()
+		};
+
+		return device.createShaderModule(createInfo);
+	}
 }
 
 #ifdef _DEBUG
@@ -266,6 +297,7 @@ renderer::renderer(HWND windowHandle)
 	create_logical_device();
 	create_swap_chain();
 	create_image_views();
+	create_graphics_pipeline();
 }
 
 renderer::~renderer()
@@ -476,4 +508,38 @@ void renderer::create_image_views()
 
 		iv = device.createImageView(createInfo);
 	}
+}
+
+void renderer::create_graphics_pipeline()
+{
+	auto vert_shader_file = read_file("shaders/shader.vert.spv");
+	auto frag_shader_file = read_file("shaders/shader.frag.spv");
+
+	auto vert_shader = create_shader_module(device, vert_shader_file);
+	auto frag_shader = create_shader_module(device, frag_shader_file);
+
+	auto vs_createInfo = vk::PipelineShaderStageCreateInfo
+	{
+		.stage = vk::ShaderStageFlagBits::eVertex,
+		.module = vert_shader,
+		.pName = "main"
+	};
+
+	auto fs_createInfo = vk::PipelineShaderStageCreateInfo
+	{
+		.stage = vk::ShaderStageFlagBits::eFragment,
+		.module = frag_shader,
+		.pName = "main"
+	};
+
+	auto shader_stages = std::vector
+	{
+		vs_createInfo, 
+		fs_createInfo
+	};
+
+
+
+	device.destroyShaderModule(frag_shader);
+	device.destroyShaderModule(vert_shader);
 }

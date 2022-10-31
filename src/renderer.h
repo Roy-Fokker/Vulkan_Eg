@@ -30,5 +30,6 @@ namespace vulkan_eg
 		vk::Format swap_chain_format;
 		vk::Extent2D swap_chain_extent;
 		std::vector<vk::ImageView> swap_chain_image_views;
+		vk::PipelineLayout pipeline_layout;
 	};
 }

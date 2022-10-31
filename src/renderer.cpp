@@ -302,6 +302,8 @@ renderer::renderer(HWND windowHandle)
 
 renderer::~renderer()
 {
+	device.destroyPipelineLayout(pipeline_layout);
+
 	for (auto &iv : swap_chain_image_views)
 	{
 		device.destroyImageView(iv);
@@ -518,14 +520,14 @@ void renderer::create_graphics_pipeline()
 	auto vert_shader = create_shader_module(device, vert_shader_file);
 	auto frag_shader = create_shader_module(device, frag_shader_file);
 
-	auto vs_createInfo = vk::PipelineShaderStageCreateInfo
+	auto vert_shdr_ci = vk::PipelineShaderStageCreateInfo
 	{
 		.stage = vk::ShaderStageFlagBits::eVertex,
 		.module = vert_shader,
 		.pName = "main"
 	};
 
-	auto fs_createInfo = vk::PipelineShaderStageCreateInfo
+	auto frag_shdr_ci = vk::PipelineShaderStageCreateInfo
 	{
 		.stage = vk::ShaderStageFlagBits::eFragment,
 		.module = frag_shader,
@@ -534,11 +536,76 @@ void renderer::create_graphics_pipeline()
 
 	auto shader_stages = std::vector
 	{
-		vs_createInfo, 
-		fs_createInfo
+		vert_shdr_ci, 
+		frag_shdr_ci
 	};
 
+	auto inpt_asmbly_ci = vk::PipelineInputAssemblyStateCreateInfo
+	{
+		.topology = vk::PrimitiveTopology::eTriangleList,
+		.primitiveRestartEnable = false
+	};
 
+	auto viewport_ci = vk::PipelineViewportStateCreateInfo
+	{
+		.viewportCount = 1,
+		.scissorCount = 1
+	};
+
+	auto rasterizer_ci = vk::PipelineRasterizationStateCreateInfo
+	{
+		.depthClampEnable = false,
+		.rasterizerDiscardEnable = false,
+		.polygonMode = vk::PolygonMode::eFill,
+		.cullMode = vk::CullModeFlagBits::eBack,
+		.frontFace = vk::FrontFace::eClockwise,
+		.depthBiasEnable = false,
+		.lineWidth = 1.0f
+	};
+
+	auto multisample_ci = vk::PipelineMultisampleStateCreateInfo
+	{
+		.rasterizationSamples = vk::SampleCountFlagBits::e1,
+		.sampleShadingEnable = false
+	};
+
+	auto clr_blend_attch_st = vk::PipelineColorBlendAttachmentState
+	{
+		.blendEnable = false,
+		.colorWriteMask = vk::ColorComponentFlagBits::eR
+		                | vk::ColorComponentFlagBits::eG
+		                | vk::ColorComponentFlagBits::eB
+		                | vk::ColorComponentFlagBits::eA
+	};
+
+	auto color_blend_ci = vk::PipelineColorBlendStateCreateInfo
+	{
+		.logicOpEnable = false,
+		.logicOp = vk::LogicOp::eCopy,
+		.attachmentCount = 1,
+		.pAttachments = &clr_blend_attch_st,
+		.blendConstants = std::array{0.0f, 0.0f, 0.0f, 0.0f}
+	};
+
+	auto dynamic_states_array = std::vector
+	{
+		vk::DynamicState::eViewport,
+		vk::DynamicState::eScissor,
+	};
+
+	auto dynamic_state = vk::PipelineDynamicStateCreateInfo
+	{
+		.dynamicStateCount = static_cast<uint32_t>(dynamic_states_array.size()),
+		.pDynamicStates = dynamic_states_array.data()
+	};
+
+	auto pipeline_layout_ci = vk::PipelineLayoutCreateInfo
+	{
+		.setLayoutCount = 0,
+		.pushConstantRangeCount = 0
+	};
+
+	auto result = device.createPipelineLayout(&pipeline_layout_ci, nullptr, &pipeline_layout);
 
 	device.destroyShaderModule(frag_shader);
 	device.destroyShaderModule(vert_shader);

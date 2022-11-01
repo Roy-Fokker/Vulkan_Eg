@@ -297,12 +297,15 @@ renderer::renderer(HWND windowHandle)
 	create_logical_device();
 	create_swap_chain();
 	create_image_views();
+	create_render_pass();
 	create_graphics_pipeline();
 }
 
 renderer::~renderer()
 {
 	device.destroyPipelineLayout(pipeline_layout);
+
+	device.destroyRenderPass(render_pass);
 
 	for (auto &iv : swap_chain_image_views)
 	{
@@ -510,6 +513,44 @@ void renderer::create_image_views()
 
 		iv = device.createImageView(createInfo);
 	}
+}
+
+void renderer::create_render_pass()
+{
+	auto color_attachment = vk::AttachmentDescription
+	{
+		.format = swap_chain_format,
+		.samples = vk::SampleCountFlagBits::e1,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
+		.stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+		.initialLayout = vk::ImageLayout::eUndefined,
+		.finalLayout = vk::ImageLayout::ePresentSrcKHR
+	};
+
+	auto color_attachment_ref = vk::AttachmentReference
+	{
+		.attachment = 0,
+		.layout = vk::ImageLayout::eColorAttachmentOptimal
+	};
+
+	auto sub_pass = vk::SubpassDescription
+	{
+		.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &color_attachment_ref
+	};
+
+	auto render_pass_ci = vk::RenderPassCreateInfo
+	{
+		.attachmentCount = 1,
+		.pAttachments = &color_attachment,
+		.subpassCount = 1,
+		.pSubpasses = &sub_pass
+	};
+
+	render_pass = device.createRenderPass(render_pass_ci);
 }
 
 void renderer::create_graphics_pipeline()

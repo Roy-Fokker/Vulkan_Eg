@@ -16,6 +16,7 @@ namespace vulkan_eg
 		void create_logical_device();
 		void create_swap_chain();
 		void create_image_views();
+		void create_render_pass();
 		void create_graphics_pipeline();
 
 	private:
@@ -30,6 +31,7 @@ namespace vulkan_eg
 		vk::Format swap_chain_format;
 		vk::Extent2D swap_chain_extent;
 		std::vector<vk::ImageView> swap_chain_image_views;
+		vk::RenderPass render_pass;
 		vk::PipelineLayout pipeline_layout;
 	};
 }

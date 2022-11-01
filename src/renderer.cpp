@@ -489,11 +489,11 @@ void renderer::create_swap_chain()
 void renderer::create_image_views()
 {
 	swap_chain_image_views.resize(swap_chain_images.size());
-	for(auto&& [i, iv] : ranges::views::zip(swap_chain_images, swap_chain_image_views))
+	for(auto&& [swap_chain_image, swap_chain_image_view] : ranges::views::zip(swap_chain_images, swap_chain_image_views))
 	{
 		auto createInfo = vk::ImageViewCreateInfo
 		{
-			.image = i,
+			.image = swap_chain_image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = swap_chain_format,
 			.components = {
@@ -511,7 +511,7 @@ void renderer::create_image_views()
 			}
 		};
 
-		iv = device.createImageView(createInfo);
+		swap_chain_image_view = device.createImageView(createInfo);
 	}
 }
 

@@ -18,6 +18,7 @@ namespace vulkan_eg
 		void create_image_views();
 		void create_render_pass();
 		void create_graphics_pipeline();
+		void create_frame_buffers();
 
 	private:
 		vk::Instance instance;
@@ -34,5 +35,6 @@ namespace vulkan_eg
 		vk::RenderPass render_pass;
 		vk::PipelineLayout pipeline_layout;
 		vk::Pipeline graphics_pipeline;
+		std::vector<vk::Framebuffer> swap_chain_frame_buffers;
 	};
 }

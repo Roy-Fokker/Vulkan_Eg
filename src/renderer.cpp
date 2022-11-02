@@ -299,10 +299,17 @@ renderer::renderer(HWND windowHandle)
 	create_image_views();
 	create_render_pass();
 	create_graphics_pipeline();
+
+	create_frame_buffers();
 }
 
 renderer::~renderer()
 {
+	for (auto &fb : swap_chain_frame_buffers)
+	{
+		device.destroyFramebuffer(fb);
+	}
+
 	device.destroyPipeline(graphics_pipeline);
 	device.destroyPipelineLayout(pipeline_layout);
 
@@ -679,4 +686,24 @@ void renderer::create_graphics_pipeline()
 
 	device.destroyShaderModule(frag_shader);
 	device.destroyShaderModule(vert_shader);
+}
+
+void renderer::create_frame_buffers()
+{
+	swap_chain_frame_buffers.resize(swap_chain_image_views.size());
+	for(auto&& [swap_chain_frame_buffer, swap_chain_image_view] : ranges::views::zip(swap_chain_frame_buffers, swap_chain_image_views))
+	{
+		auto attachments = std::vector { swap_chain_image_view };
+		auto frame_buffer_ci = vk::FramebufferCreateInfo
+		{
+			.renderPass = render_pass,
+			.attachmentCount = static_cast<uint32_t>(attachments.size()),
+			.pAttachments = attachments.data(),
+			.width = swap_chain_extent.width,
+			.height = swap_chain_extent.height,
+			.layers = 1
+		};
+
+		swap_chain_frame_buffer = device.createFramebuffer(frame_buffer_ci);
+	}
 }

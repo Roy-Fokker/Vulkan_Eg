@@ -33,5 +33,6 @@ namespace vulkan_eg
 		std::vector<vk::ImageView> swap_chain_image_views;
 		vk::RenderPass render_pass;
 		vk::PipelineLayout pipeline_layout;
+		vk::Pipeline graphics_pipeline;
 	};
 }

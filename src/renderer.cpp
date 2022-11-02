@@ -303,6 +303,7 @@ renderer::renderer(HWND windowHandle)
 
 renderer::~renderer()
 {
+	device.destroyPipeline(graphics_pipeline);
 	device.destroyPipelineLayout(pipeline_layout);
 
 	device.destroyRenderPass(render_pass);
@@ -581,6 +582,12 @@ void renderer::create_graphics_pipeline()
 		frag_shdr_ci
 	};
 
+	auto vert_input_ci = vk::PipelineVertexInputStateCreateInfo
+	{
+		.vertexBindingDescriptionCount = 0,
+		.vertexAttributeDescriptionCount = 0
+	};
+
 	auto inpt_asmbly_ci = vk::PipelineInputAssemblyStateCreateInfo
 	{
 		.topology = vk::PrimitiveTopology::eTriangleList,
@@ -647,6 +654,28 @@ void renderer::create_graphics_pipeline()
 	};
 
 	auto result = device.createPipelineLayout(&pipeline_layout_ci, nullptr, &pipeline_layout);
+
+	auto gfx_pipeline_layout_ci = vk::GraphicsPipelineCreateInfo
+	{
+		.stageCount = 2,
+		.pStages = shader_stages.data(),
+		.pVertexInputState = &vert_input_ci,
+		.pInputAssemblyState = &inpt_asmbly_ci,
+		.pViewportState = &viewport_ci,
+		.pRasterizationState = &rasterizer_ci,
+		.pMultisampleState = &multisample_ci,
+		.pColorBlendState = &color_blend_ci,
+		.pDynamicState = &dynamic_state,
+		.layout = pipeline_layout,
+		.renderPass = render_pass,
+		.subpass = 0
+	};
+
+	std::tie(result, graphics_pipeline) = device.createGraphicsPipeline(nullptr, gfx_pipeline_layout_ci);
+	if (result != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("Unable to create graphics pipeline");
+	}
 
 	device.destroyShaderModule(frag_shader);
 	device.destroyShaderModule(vert_shader);

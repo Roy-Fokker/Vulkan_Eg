@@ -1,6 +1,7 @@
 # ignore CMake Build directory
 \builds
 \install
+\out
 
 # ignore vcpkg folder
 \vcpkg
@@ -50,7 +51,8 @@
 *.app
 
 # Visual Studio folders
-.vs/
+.vs/*
+!.vs/launch.vs.json
 
 # other files/folders
 .DS_Store

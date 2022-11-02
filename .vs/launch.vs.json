@@ -1,0 +1,13 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+	{
+		"type": "default",
+		"project": "CMakeLists.txt",
+		"projectTarget": "vulkan-eg.exe (bin\\Debug\\vulkan-eg.exe)",
+		"name": "vulkan-eg.exe (bin\\Debug\\vulkan-eg.exe)",
+		"currentDir": "${cmake.vulkan-eg_BINARY_DIR}/bin"
+	}
+  ]
+}

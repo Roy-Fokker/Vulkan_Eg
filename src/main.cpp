@@ -3,6 +3,9 @@
 
 auto main() -> int
 {
+	std::cout << "Working Directory: ";
+	std::cout << std::filesystem::current_path() << "\n";
+
 	using namespace vulkan_eg;
 
 	// Create Window

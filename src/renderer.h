@@ -19,6 +19,10 @@ namespace vulkan_eg
 		void create_render_pass();
 		void create_graphics_pipeline();
 		void create_frame_buffers();
+		void create_command_pool();
+		void create_command_buffer();
+
+		void record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t image_index);
 
 	private:
 		vk::Instance instance;
@@ -36,5 +40,7 @@ namespace vulkan_eg
 		vk::PipelineLayout pipeline_layout;
 		vk::Pipeline graphics_pipeline;
 		std::vector<vk::Framebuffer> swap_chain_frame_buffers;
+		vk::CommandPool command_pool;
+		std::vector<vk::CommandBuffer> command_buffers;
 	};
 }

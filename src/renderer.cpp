@@ -301,10 +301,14 @@ renderer::renderer(HWND windowHandle)
 	create_graphics_pipeline();
 
 	create_frame_buffers();
+	create_command_pool();
+	create_command_buffer();
 }
 
 renderer::~renderer()
 {
+	device.destroyCommandPool(command_pool);
+
 	for (auto &fb : swap_chain_frame_buffers)
 	{
 		device.destroyFramebuffer(fb);
@@ -706,4 +710,84 @@ void renderer::create_frame_buffers()
 
 		swap_chain_frame_buffer = device.createFramebuffer(frame_buffer_ci);
 	}
+}
+
+void renderer::create_command_pool()
+{
+	auto queue_family_indices = find_queue_family(physical_device, surface);
+
+	auto command_pool_ci = vk::CommandPoolCreateInfo
+	{
+		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+		.queueFamilyIndex = queue_family_indices.graphics_family.value()
+	};
+
+	command_pool = device.createCommandPool(command_pool_ci);
+}
+
+void renderer::create_command_buffer()
+{
+	auto cmd_buffer_alloc_info = vk::CommandBufferAllocateInfo
+	{
+		.commandPool = command_pool,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = 1
+	};
+
+	command_buffers = device.allocateCommandBuffers(cmd_buffer_alloc_info);
+}
+
+void renderer::record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t image_index)
+{
+	auto cmd_buff_begin_info = vk::CommandBufferBeginInfo{};
+	auto result = cmd_buffer.begin(&cmd_buff_begin_info);
+	if (result != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to being recordign command buffer.");
+	}
+
+	auto clear_color = vk::ClearValue
+	{
+		.color = std::array{0.0f, 0.0f, 0.0f, 1.0f}
+	};
+
+	auto render_pass_begin_info = vk::RenderPassBeginInfo
+	{
+		.renderPass = render_pass,
+		.framebuffer = swap_chain_frame_buffers.at(image_index),
+		.renderArea = {
+			.offset = {0, 0},
+			.extent = swap_chain_extent
+		},
+		.clearValueCount = 1,
+		.pClearValues = &clear_color
+	};
+
+	cmd_buffer.beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+	{
+		cmd_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline);
+
+		auto viewport = vk::Viewport
+		{
+			.x = 0.0f, 
+			.y = 0.0f,
+			.width = static_cast<float>(swap_chain_extent.width),
+			.height = static_cast<float>(swap_chain_extent.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+		cmd_buffer.setViewport(0, viewport);
+
+		auto scissor = vk::Rect2D
+		{
+			.offset = {0, 0},
+			.extent = swap_chain_extent
+		};
+		cmd_buffer.setScissor(0, scissor);
+
+		cmd_buffer.draw(1, 1, 0, 0);
+	}
+	cmd_buffer.endRenderPass();
+
+	cmd_buffer.end();
 }

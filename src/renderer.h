@@ -8,6 +8,8 @@ namespace vulkan_eg
 		renderer(HWND windowHandle);
 		~renderer();
 
+		void draw_frame();
+
 	private:
 		void create_vulkan_instance(std::string_view name);
 		void setup_debug_callback();
@@ -21,8 +23,10 @@ namespace vulkan_eg
 		void create_frame_buffers();
 		void create_command_pool();
 		void create_command_buffer();
+		void create_sync_objects();
 
 		void record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t image_index);
+
 
 	private:
 		vk::Instance instance;
@@ -42,5 +46,9 @@ namespace vulkan_eg
 		std::vector<vk::Framebuffer> swap_chain_frame_buffers;
 		vk::CommandPool command_pool;
 		std::vector<vk::CommandBuffer> command_buffers;
+
+		vk::Semaphore image_available_semaphore;
+		vk::Semaphore render_finished_semaphore;
+		vk::Fence in_flight_fence;
 	};
 }

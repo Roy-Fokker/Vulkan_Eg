@@ -30,6 +30,7 @@ auto main() -> int
 	while (wnd.handle() and (not is_close))
 	{
 		wnd.process_messages();
+		rndr.draw_frame();
 	}
 	
 	return EXIT_SUCCESS;

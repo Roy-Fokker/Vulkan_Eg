@@ -303,10 +303,17 @@ renderer::renderer(HWND windowHandle)
 	create_frame_buffers();
 	create_command_pool();
 	create_command_buffer();
+	create_sync_objects();
 }
 
 renderer::~renderer()
 {
+	device.waitIdle();
+
+	device.destroyFence(in_flight_fence);
+	device.destroySemaphore(render_finished_semaphore);
+	device.destroySemaphore(image_available_semaphore);
+
 	device.destroyCommandPool(command_pool);
 
 	for (auto &fb : swap_chain_frame_buffers)
@@ -332,6 +339,46 @@ renderer::~renderer()
 	instance.destroyDebugUtilsMessengerEXT(debug_messenger);
 #endif
 	instance.destroy();
+}
+
+void renderer::draw_frame()
+{
+	auto fences = std::vector{ in_flight_fence };
+	auto result1 = device.waitForFences(fences, true, UINT64_MAX);
+	device.resetFences(fences);
+
+	auto [result, image_index] = device.acquireNextImageKHR(swap_chain, UINT64_MAX, image_available_semaphore, nullptr);
+
+	command_buffers.at(0).reset();
+	record_command_buffer(command_buffers.at(0), image_index);
+
+	auto wait_semaphores = std::vector{ image_available_semaphore };
+	auto signal_semaphore = std::vector{ render_finished_semaphore };
+	auto wait_stages = vk::PipelineStageFlags{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	auto submit_ci = vk::SubmitInfo
+	{
+		.waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size()),
+		.pWaitSemaphores = wait_semaphores.data(),
+		.pWaitDstStageMask = &wait_stages,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &command_buffers.at(0),
+		.signalSemaphoreCount = static_cast<uint32_t>(signal_semaphore.size()),
+		.pSignalSemaphores = signal_semaphore.data()
+	};
+
+	graphics_queue.submit({submit_ci}, in_flight_fence);
+
+	auto swap_chains = std::vector{ swap_chain };
+	auto present_info = vk::PresentInfoKHR
+	{
+		.waitSemaphoreCount = static_cast<uint32_t>(signal_semaphore.size()),
+		.pWaitSemaphores = signal_semaphore.data(),
+		.swapchainCount = static_cast<uint32_t>(swap_chains.size()),
+		.pSwapchains = swap_chains.data(),
+		.pImageIndices = &image_index
+	};
+
+	result = present_queue.presentKHR(present_info);
 }
 
 void renderer::create_vulkan_instance(std::string_view name)
@@ -554,12 +601,24 @@ void renderer::create_render_pass()
 		.pColorAttachments = &color_attachment_ref
 	};
 
+	auto dependency = vk::SubpassDependency
+	{
+		.srcSubpass = VK_SUBPASS_EXTERNAL,
+		.dstSubpass = 0,
+		.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+		.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+		.srcAccessMask = vk::AccessFlagBits::eNone,
+		.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite
+	};
+
 	auto render_pass_ci = vk::RenderPassCreateInfo
 	{
 		.attachmentCount = 1,
 		.pAttachments = &color_attachment,
 		.subpassCount = 1,
-		.pSubpasses = &sub_pass
+		.pSubpasses = &sub_pass,
+		.dependencyCount = 1,
+		.pDependencies = &dependency
 	};
 
 	render_pass = device.createRenderPass(render_pass_ci);
@@ -790,4 +849,18 @@ void renderer::record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t ima
 	cmd_buffer.endRenderPass();
 
 	cmd_buffer.end();
+}
+
+void renderer::create_sync_objects()
+{
+	auto result = vk::Result{};
+	auto semaphore_ci = vk::SemaphoreCreateInfo{};
+	image_available_semaphore = device.createSemaphore(semaphore_ci);
+	render_finished_semaphore = device.createSemaphore(semaphore_ci);
+
+	auto fence_ci = vk::FenceCreateInfo
+	{
+		.flags = vk::FenceCreateFlagBits::eSignaled
+	};
+	in_flight_fence = device.createFence(fence_ci);
 }

@@ -697,7 +697,7 @@ void renderer::create_frame_buffers()
 	swap_chain_frame_buffers.resize(swap_chain_image_views.size());
 	for(auto&& [swap_chain_frame_buffer, swap_chain_image_view] : ranges::views::zip(swap_chain_frame_buffers, swap_chain_image_views))
 	{
-		auto attachments = std::vector { swap_chain_image_view };
+		auto attachments = std::vector<vk::ImageView> { swap_chain_image_view };
 		auto frame_buffer_ci = vk::FramebufferCreateInfo
 		{
 			.renderPass = render_pass,
@@ -785,7 +785,7 @@ void renderer::record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t ima
 		};
 		cmd_buffer.setScissor(0, scissor);
 
-		cmd_buffer.draw(1, 1, 0, 0);
+		cmd_buffer.draw(3, 1, 0, 0);
 	}
 	cmd_buffer.endRenderPass();
 

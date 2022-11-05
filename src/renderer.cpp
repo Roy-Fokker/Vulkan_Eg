@@ -5,6 +5,8 @@ using namespace std::string_literals;
 
 namespace 
 {
+	constexpr auto max_frames_in_flight = 2;
+
 	constexpr auto wanted_instance_layers = std::array{
 #ifdef _DEBUG
 		"VK_LAYER_KHRONOS_validation",
@@ -310,9 +312,13 @@ renderer::~renderer()
 {
 	device.waitIdle();
 
-	device.destroyFence(in_flight_fence);
-	device.destroySemaphore(render_finished_semaphore);
-	device.destroySemaphore(image_available_semaphore);
+	for(auto&& [image_available_semaphore, render_finished_semaphore, in_flight_fence]
+	         : ranges::views::zip(image_available_semaphores, render_finished_semaphores, in_flight_fences))
+	{
+		device.destroyFence(in_flight_fence);
+		device.destroySemaphore(render_finished_semaphore);
+		device.destroySemaphore(image_available_semaphore);
+	}
 
 	device.destroyCommandPool(command_pool);
 
@@ -343,27 +349,29 @@ renderer::~renderer()
 
 void renderer::draw_frame()
 {
-	auto fences = std::vector{ in_flight_fence };
-	auto result1 = device.waitForFences(fences, true, UINT64_MAX);
-	device.resetFences(fences);
+	auto in_flight_fence = in_flight_fences.at(current_frame);
+	auto image_available_semaphore = image_available_semaphores.at(current_frame);
+	auto render_finished_semaphore = render_finished_semaphores.at(current_frame);
+	auto command_buffer = command_buffers.at(current_frame);
+
+	auto res_fence = device.waitForFences(in_flight_fence, true, UINT64_MAX);
+	device.resetFences(in_flight_fence);
 
 	auto [result, image_index] = device.acquireNextImageKHR(swap_chain, UINT64_MAX, image_available_semaphore, nullptr);
 
-	command_buffers.at(0).reset();
-	record_command_buffer(command_buffers.at(0), image_index);
+	command_buffer.reset();
+	record_command_buffer(command_buffer, image_index);
 
-	auto wait_semaphores = std::vector{ image_available_semaphore };
-	auto signal_semaphore = std::vector{ render_finished_semaphore };
 	auto wait_stages = vk::PipelineStageFlags{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
 	auto submit_ci = vk::SubmitInfo
 	{
-		.waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size()),
-		.pWaitSemaphores = wait_semaphores.data(),
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &image_available_semaphore,
 		.pWaitDstStageMask = &wait_stages,
 		.commandBufferCount = 1,
-		.pCommandBuffers = &command_buffers.at(0),
-		.signalSemaphoreCount = static_cast<uint32_t>(signal_semaphore.size()),
-		.pSignalSemaphores = signal_semaphore.data()
+		.pCommandBuffers = &command_buffer,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &render_finished_semaphore
 	};
 
 	graphics_queue.submit({submit_ci}, in_flight_fence);
@@ -371,14 +379,16 @@ void renderer::draw_frame()
 	auto swap_chains = std::vector{ swap_chain };
 	auto present_info = vk::PresentInfoKHR
 	{
-		.waitSemaphoreCount = static_cast<uint32_t>(signal_semaphore.size()),
-		.pWaitSemaphores = signal_semaphore.data(),
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &render_finished_semaphore,
 		.swapchainCount = static_cast<uint32_t>(swap_chains.size()),
 		.pSwapchains = swap_chains.data(),
 		.pImageIndices = &image_index
 	};
 
 	result = present_queue.presentKHR(present_info);
+
+	current_frame = (current_frame + 1) % max_frames_in_flight;
 }
 
 void renderer::create_vulkan_instance(std::string_view name)
@@ -790,7 +800,7 @@ void renderer::create_command_buffer()
 	{
 		.commandPool = command_pool,
 		.level = vk::CommandBufferLevel::ePrimary,
-		.commandBufferCount = 1
+		.commandBufferCount = max_frames_in_flight
 	};
 
 	command_buffers = device.allocateCommandBuffers(cmd_buffer_alloc_info);
@@ -853,14 +863,22 @@ void renderer::record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t ima
 
 void renderer::create_sync_objects()
 {
-	auto result = vk::Result{};
-	auto semaphore_ci = vk::SemaphoreCreateInfo{};
-	image_available_semaphore = device.createSemaphore(semaphore_ci);
-	render_finished_semaphore = device.createSemaphore(semaphore_ci);
+	image_available_semaphores.resize(max_frames_in_flight);
+	render_finished_semaphores.resize(max_frames_in_flight);
+	in_flight_fences.resize(max_frames_in_flight);
 
-	auto fence_ci = vk::FenceCreateInfo
+	for(auto&& [image_available_semaphore, render_finished_semaphore, in_flight_fence]
+	         : ranges::views::zip(image_available_semaphores, render_finished_semaphores, in_flight_fences))
 	{
-		.flags = vk::FenceCreateFlagBits::eSignaled
-	};
-	in_flight_fence = device.createFence(fence_ci);
+		auto semaphore_ci = vk::SemaphoreCreateInfo{};
+		image_available_semaphore = device.createSemaphore(semaphore_ci);
+		render_finished_semaphore = device.createSemaphore(semaphore_ci);
+
+		auto fence_ci = vk::FenceCreateInfo
+		{
+			.flags = vk::FenceCreateFlagBits::eSignaled
+		};
+		in_flight_fence = device.createFence(fence_ci);
+	}
 }
+

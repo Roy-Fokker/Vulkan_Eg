@@ -47,8 +47,10 @@ namespace vulkan_eg
 		vk::CommandPool command_pool;
 		std::vector<vk::CommandBuffer> command_buffers;
 
-		vk::Semaphore image_available_semaphore;
-		vk::Semaphore render_finished_semaphore;
-		vk::Fence in_flight_fence;
+		std::vector<vk::Semaphore> image_available_semaphores;
+		std::vector<vk::Semaphore> render_finished_semaphores;
+		std::vector<vk::Fence> in_flight_fences;
+
+		uint32_t current_frame{0};
 	};
 }

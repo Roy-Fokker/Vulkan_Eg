@@ -516,8 +516,8 @@ void renderer::create_swap_chain()
 	auto scs = query_swap_chain_support(physical_device, surface);
 	auto sf = choose_swap_surface_format(scs.formats);
 	auto pm = choose_swap_present_mode(scs.present_modes);
-	auto extent = choose_swap_extent(scs.capabilities);
-
+	swap_chain_extent = choose_swap_extent(scs.capabilities);
+	
 	auto image_count = std::clamp(0u, scs.capabilities.minImageCount + 1, scs.capabilities.maxImageCount);
 
 	auto qf = find_queue_family(physical_device, surface);
@@ -534,7 +534,7 @@ void renderer::create_swap_chain()
 		.minImageCount = image_count,
 		.imageFormat = sf.format,
 		.imageColorSpace = sf.colorSpace,
-		.imageExtent = extent,
+		.imageExtent = swap_chain_extent,
 		.imageArrayLayers = 1,
 		.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
 		.imageSharingMode = ism,
@@ -550,7 +550,6 @@ void renderer::create_swap_chain()
 
 	swap_chain_images = device.getSwapchainImagesKHR(swap_chain);
 	swap_chain_format = sf.format;
-	swap_chain_extent = extent;
 }
 
 void renderer::create_image_views()
@@ -910,12 +909,20 @@ void renderer::destroy_swap_chain()
 {
 	for (auto &fb : swap_chain_frame_buffers)
 	{
-		device.destroyFramebuffer(fb);
+		if (fb)
+		{
+			device.destroyFramebuffer(fb);
+			fb = nullptr;
+		}
 	}
 
 	for (auto &iv : swap_chain_image_views)
 	{
-		device.destroyImageView(iv);
+		if (iv)
+		{
+			device.destroyImageView(iv);
+			iv = nullptr;
+		}
 	}
 
 	device.destroySwapchainKHR(swap_chain);

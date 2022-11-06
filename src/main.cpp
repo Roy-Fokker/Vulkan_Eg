@@ -13,12 +13,24 @@ auto main() -> int
 	                  {800, 600});
 	
 	auto is_close{false};
+	auto is_active{false};
 	wnd.set_message_callback(window::message_type::keypress,
 	                         [&](uintptr_t key_code, uintptr_t extension) -> bool
 	{
 		if (key_code == VK_ESCAPE)
 		{
 			is_close = true;
+		}
+		return true;
+	});
+
+	wnd.set_message_callback(window::message_type::activate,
+	                         [&](uintptr_t state, uintptr_t wnd_id) -> bool
+	{
+		is_active = false;
+		if (state == WA_ACTIVE or state == WA_CLICKACTIVE)
+		{
+			is_active = true;
 		}
 		return true;
 	});
@@ -30,7 +42,11 @@ auto main() -> int
 	while (wnd.handle() and (not is_close))
 	{
 		wnd.process_messages();
-		rndr.draw_frame();
+
+		if (is_active)
+		{
+			rndr.draw_frame();
+		}
 	}
 	
 	return EXIT_SUCCESS;

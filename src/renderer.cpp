@@ -312,6 +312,8 @@ renderer::~renderer()
 {
 	device.waitIdle();
 
+	destroy_swap_chain();
+
 	for(auto&& [image_available_semaphore, render_finished_semaphore, in_flight_fence]
 	         : ranges::views::zip(image_available_semaphores, render_finished_semaphores, in_flight_fences))
 	{
@@ -322,22 +324,11 @@ renderer::~renderer()
 
 	device.destroyCommandPool(command_pool);
 
-	for (auto &fb : swap_chain_frame_buffers)
-	{
-		device.destroyFramebuffer(fb);
-	}
-
 	device.destroyPipeline(graphics_pipeline);
 	device.destroyPipelineLayout(pipeline_layout);
 
 	device.destroyRenderPass(render_pass);
-
-	for (auto &iv : swap_chain_image_views)
-	{
-		device.destroyImageView(iv);
-	}
-
-	device.destroySwapchainKHR(swap_chain);
+	
 	device.destroy();
 
 	instance.destroySurfaceKHR(surface);
@@ -355,9 +346,16 @@ void renderer::draw_frame()
 	auto command_buffer = command_buffers.at(current_frame);
 
 	auto res_fence = device.waitForFences(in_flight_fence, true, UINT64_MAX);
-	device.resetFences(in_flight_fence);
+	
+	auto [result, image_index] = device.acquireNextImageKHR(swap_chain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE);
+	if (result == vk::Result::eErrorOutOfDateKHR
+	    or result == vk::Result::eSuboptimalKHR)
+	{
+		recreate_swap_chain();
+		return;
+	}
 
-	auto [result, image_index] = device.acquireNextImageKHR(swap_chain, UINT64_MAX, image_available_semaphore, nullptr);
+	device.resetFences(in_flight_fence);
 
 	command_buffer.reset();
 	record_command_buffer(command_buffer, image_index);
@@ -880,5 +878,50 @@ void renderer::create_sync_objects()
 		};
 		in_flight_fence = device.createFence(fence_ci);
 	}
+}
+
+void renderer::recreate_swap_chain()
+{
+	device.waitIdle();
+
+	reset_semaphore();
+
+	destroy_swap_chain();
+
+	create_swap_chain();
+	create_image_views();
+	create_frame_buffers();
+}
+
+void renderer::reset_semaphore()
+{
+	auto in_flight_fence = in_flight_fences.at(current_frame);
+	device.resetFences(in_flight_fence);
+	
+	auto image_available_semaphore = image_available_semaphores.at(current_frame);
+	auto psw = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	auto submit_ci = vk::SubmitInfo
+	{
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &image_available_semaphore,
+		.pWaitDstStageMask = &psw
+	};
+
+	graphics_queue.submit({submit_ci}, in_flight_fence);
+}
+
+void renderer::destroy_swap_chain()
+{
+	for (auto &fb : swap_chain_frame_buffers)
+	{
+		device.destroyFramebuffer(fb);
+	}
+
+	for (auto &iv : swap_chain_image_views)
+	{
+		device.destroyImageView(iv);
+	}
+
+	device.destroySwapchainKHR(swap_chain);
 }
 

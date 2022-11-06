@@ -27,8 +27,8 @@ namespace vulkan_eg
 
 		void record_command_buffer(vk::CommandBuffer &cmd_buffer, uint32_t image_index);
 
-		void recreate_swap_chain();
-		void reset_semaphore();
+		void recreate_swap_chain(vk::Queue queue, vk::Semaphore semaphore);
+		void reset_semaphore(vk::Queue queue, vk::Semaphore semaphore);
 		void destroy_swap_chain();
 
 	private:

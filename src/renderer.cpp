@@ -351,7 +351,7 @@ void renderer::draw_frame()
 	if (result == vk::Result::eErrorOutOfDateKHR
 	    or result == vk::Result::eSuboptimalKHR)
 	{
-		recreate_swap_chain();
+		recreate_swap_chain(graphics_queue, image_available_semaphore);
 		return;
 	}
 
@@ -880,11 +880,11 @@ void renderer::create_sync_objects()
 	}
 }
 
-void renderer::recreate_swap_chain()
+void renderer::recreate_swap_chain(vk::Queue queue, vk::Semaphore semaphore)
 {
 	device.waitIdle();
 
-	reset_semaphore();
+	reset_semaphore(queue, semaphore);
 
 	destroy_swap_chain();
 
@@ -893,21 +893,17 @@ void renderer::recreate_swap_chain()
 	create_frame_buffers();
 }
 
-void renderer::reset_semaphore()
+void renderer::reset_semaphore(vk::Queue queue, vk::Semaphore semaphore)
 {
-	auto in_flight_fence = in_flight_fences.at(current_frame);
-	device.resetFences(in_flight_fence);
-	
-	auto image_available_semaphore = image_available_semaphores.at(current_frame);
-	auto psw = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	auto psw = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eBottomOfPipe);
 	auto submit_ci = vk::SubmitInfo
 	{
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &image_available_semaphore,
+		.pWaitSemaphores = &semaphore,
 		.pWaitDstStageMask = &psw
 	};
 
-	graphics_queue.submit({submit_ci}, in_flight_fence);
+	queue.submit({submit_ci}, nullptr);
 }
 
 void renderer::destroy_swap_chain()

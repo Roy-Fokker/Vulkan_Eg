@@ -15,6 +15,8 @@
 #include <tuple>
 #include <utility>
 #include <filesystem>
+#include <stdexcept>
+#include <exception>
 
 #pragma warning(push)
 #pragma warning(disable : 5105)

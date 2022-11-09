@@ -45,7 +45,7 @@ target_link_libraries(vulkan-eg
 # Use Precompiled headers for std/os stuff
 target_precompile_headers(vulkan-eg
 	PRIVATE
-		pch.h)
+		pch.hpp)
 
 # sources to be used
 target_sources(vulkan-eg

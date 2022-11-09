@@ -1,5 +1,5 @@
-#include "window.h"
-#include "renderer.h"
+#include "window.hpp"
+#include "renderer.hpp"
 
 auto main() -> int
 {

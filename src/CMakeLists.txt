@@ -57,5 +57,5 @@ target_sources(vulkan-eg
 # shaders to be used, 
 # must include "cmake/glsl_compiler.cmake" before calling
 target_shader_sources(vulkan-eg
-	shaders/shader.frag
-	shaders/shader.vert)
+	shaders/simple_shader.frag
+	shaders/simple_shader.vert)

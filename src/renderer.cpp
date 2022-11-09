@@ -633,8 +633,8 @@ void renderer::create_render_pass()
 
 void renderer::create_graphics_pipeline()
 {
-	auto vert_shader_file = read_file("shaders/shader.vert.spv");
-	auto frag_shader_file = read_file("shaders/shader.frag.spv");
+	auto vert_shader_file = read_file("shaders/simple_shader.vert.spv");
+	auto frag_shader_file = read_file("shaders/simple_shader.frag.spv");
 
 	auto vert_shader = create_shader_module(device, vert_shader_file);
 	auto frag_shader = create_shader_module(device, frag_shader_file);

@@ -27,7 +27,7 @@ namespace
 	{
 		auto mode_iter = std::ranges::find_if(sd.present_modes, [](const vk::PresentModeKHR &pm)
 		{
-			return pm == vk::PresentModeKHR::eMailbox;
+			return pm == vk::PresentModeKHR::eFifoRelaxed;
 		});
 
 		if (mode_iter == sd.present_modes.end())

@@ -225,11 +225,11 @@ void swap_chain::destroy_images()
 			vk_device.destroyImageView(image_view);
 			image_view = nullptr;
 		}
-		if (image)
-		{
-			vk_device.destroyImage(image);
-			image = nullptr;
-		}
+		// if (image)
+		// {
+		// 	vk_device.destroyImage(image);
+		// 	image = nullptr;
+		// }
 	}
 }
 

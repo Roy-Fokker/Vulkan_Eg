@@ -24,6 +24,7 @@ namespace vulkan_eg::vkw
 		[[nodiscard]] auto get_queue_family() const -> queue_family;
 		auto get_device() -> vk::Device &;
 		auto get_physical_device() -> vk::PhysicalDevice &;
+		auto get_queues() -> std::tuple<vk::Queue &, vk::Queue &>;
 
 	private:
 		void pick_physical_device(const instance *vkw_inst);

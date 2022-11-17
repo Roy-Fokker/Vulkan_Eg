@@ -36,7 +36,6 @@ namespace vulkan_eg
 		vk::SurfaceKHR surface;
 		vk::PhysicalDevice physical_device;
 		vk::Device device;
-		vk::Queue graphics_queue, present_queue;
 
 		vk::PipelineLayout pipeline_layout;
 		vk::Pipeline graphics_pipeline;

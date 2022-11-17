@@ -180,3 +180,12 @@ auto devices::get_physical_device() -> vk::PhysicalDevice &
 {
 	return vk_physical_device;
 }
+
+auto devices::get_queues() -> std::tuple<vk::Queue &, vk::Queue &>
+{
+	return
+	{
+		vk_graphics_queue,
+		vk_present_queue
+	};
+}

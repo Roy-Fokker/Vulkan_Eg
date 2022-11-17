@@ -92,6 +92,7 @@ renderer::~renderer()
 
 void renderer::draw_frame()
 {
+	auto &&[graphics_queue, present_queue] = vk_devices->get_queues();
 	auto swap_chain = vk_swapchain->get();
 	auto in_flight_fence = in_flight_fences.at(current_frame);
 	auto image_available_semaphore = image_available_semaphores.at(current_frame);

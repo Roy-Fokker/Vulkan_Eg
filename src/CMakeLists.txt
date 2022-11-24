@@ -56,7 +56,8 @@ target_sources(vulkan-eg
 		renderer.cpp
 		vk/instance.cpp
 		vk/devices.cpp
-		vk/swap_chain.cpp)
+		vk/swap_chain.cpp
+		vk/pipeline.cpp)
 
 # shaders to be used, 
 # must include "cmake/glsl_compiler.cmake" before calling

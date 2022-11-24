@@ -3,6 +3,7 @@
 #include "vk/instance.hpp"
 #include "vk/devices.hpp"
 #include "vk/swap_chain.hpp"
+#include "vk/pipeline.hpp"
 
 using namespace vulkan_eg;
 using namespace std::string_literals;
